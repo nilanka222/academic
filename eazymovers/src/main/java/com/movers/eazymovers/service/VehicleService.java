@@ -3,7 +3,7 @@ package com.movers.eazymovers.service;
 import com.movers.eazymovers.common.dto.UserDTO;
 import com.movers.eazymovers.common.dto.VehicleDTO;
 import com.movers.eazymovers.common.dto.VehicleTypeDTO;
-import com.movers.eazymovers.dal.entity.VehicleType;
+import com.movers.eazymovers.common.response.ResultList;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,4 +29,6 @@ public interface VehicleService {
     void deleteVehicleType(Integer id);
 
     List<UserDTO> findOwnersByVehicleType(Integer typeId);
+
+    ResultList findVehicle(Integer pageNo, Integer pageSize, Long userId, Integer vehicleTypeId);
 }

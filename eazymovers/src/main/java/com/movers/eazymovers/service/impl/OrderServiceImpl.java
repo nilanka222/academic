@@ -12,13 +12,13 @@ import com.movers.eazymovers.dal.repository.OrderLocationRepository;
 import com.movers.eazymovers.dal.repository.OrderRepository;
 import com.movers.eazymovers.service.OrderNotificationService;
 import com.movers.eazymovers.service.OrderService;
-import org.apache.commons.logging.Log;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 
@@ -37,6 +37,7 @@ public class OrderServiceImpl implements OrderService {
     OrderNotificationService notificationService;
 
     @Override
+    @Transactional
     public Result updateOrder(OrderDTO orderDTO) {
         Result result = new Result();
         if(null == orderDTO.getId() || orderDTO.getId().equals(0)){
@@ -51,9 +52,9 @@ public class OrderServiceImpl implements OrderService {
         User currentUser = ThreadLocalContextHolder.getCurrentUser();
         Order existing = orderRepository.findById(orderDTO.getId()).get();
 
-        //status pending means, a provider accepted and pending to complete
+        // a provider accepted and pending to complete
         if(null != orderDTO.getStatus() &&
-                OrderStatus.PENDING.equals(OrderStatus.fromVale(orderDTO.getStatus())) &&
+                OrderStatus.ACCEPTED.equals(OrderStatus.fromVale(orderDTO.getStatus())) &&
                 currentUser.getIsVehicleOwner()){
             //check if the vehicle owner has accepted another order during same time
             if(hasAnotherOrderAccepted(currentUser,existing)){
@@ -64,7 +65,7 @@ public class OrderServiceImpl implements OrderService {
             order.setProvider(currentUser);
 
             if(existing.getProvider() != null &&
-                    OrderStatus.PENDING.equals(OrderStatus.fromVale(existing.getStatus()))){
+                    OrderStatus.ACCEPTED.equals(OrderStatus.fromVale(existing.getStatus()))){
                 //someone else already accepted the order
                 result.setSuccess(false);
                 result.setMessage("Already accepted by another driver!");
@@ -82,11 +83,22 @@ public class OrderServiceImpl implements OrderService {
             }
         }else if(OrderStatus.CANCEL.equals(OrderStatus.fromVale(orderDTO.getStatus())) &&
                 currentUser.getIsVehicleOwner()){
-            //when cancel a order by driver, system has to notify to other drivers
+            //when cancel a order by driver, system has to notify other drivers
+            //if reorder count < #xx to avoid deadlock
             order.setProvider(null);
+            Integer resubmit = order.getResubmit();
+            if(null != resubmit){
+                resubmit = resubmit+1;
+            }else{
+               resubmit=1;
+            }
+            order.setResubmit(resubmit);
             orderRepository.save(order);
             Order updated = orderRepository.findById(orderDTO.getId()).get();
-            notificationService.notifyToServiceProviders(updated);
+            if(resubmit < 2) {
+                //only one times allow to resubmit by system
+                notificationService.notifyToServiceProviders(updated);
+            }
             updateOrderHistory("Order Canceled and reorder notified",updated);
 
             result.setMessage("Order cancelled");
@@ -120,6 +132,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public Result createOrder(OrderDTO orderDTO) {
         Order order = new Order();
         BeanUtils.copyProperties(orderDTO,order);
@@ -136,7 +149,7 @@ public class OrderServiceImpl implements OrderService {
         orderLocationRepository.save(to);
         order.setFromAddress(to);
 
-        order.setStatus(OrderStatus.getValue(OrderStatus.SUBMIT));
+        order.setStatus(OrderStatus.getValue(OrderStatus.SUBMITED));
         order.setCreatedTime(new Date());
         order.setLastUpdatedTime(new Date());
         orderRepository.save(order);
@@ -181,7 +194,7 @@ public class OrderServiceImpl implements OrderService {
             resultList.setSuccess(false);
         }else{
             Pageable pageable = PageRequest.of(pageNo, pageSize);
-            Page<Order> page = orderRepository.findByConsumerUserIdOrProviderUserId(userId,pageable);
+            Page<Order> page = orderRepository.findUserOrders(pageable, userId);
             if(null != page && null != page.getContent()){
                 resultList.setSuccess(true);
                 resultList.setTotalRecords(page.getTotalElements());
@@ -196,7 +209,29 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public ResultList<Order> listPendingAcceptOrders(Long userId, Integer pageNo, Integer pageSize) {
-        //TODO
-        return null;
+        User currentUser = ThreadLocalContextHolder.getCurrentUser();
+        ResultList resultList = new ResultList();
+        resultList.setCurrentPage(pageNo);
+        resultList.setPageSize(pageSize);
+
+        if(!userId.equals(currentUser.getUserId())){
+            resultList.setMessage("Please login");
+            resultList.setSuccess(false);
+        }else if(!currentUser.getIsVehicleOwner()){
+            resultList.setMessage("Only vehicle owners allowed");
+            resultList.setSuccess(false);
+        }else{
+            Pageable pageable = PageRequest.of(pageNo, pageSize);
+            Page<Order> page = orderRepository.findSubmittedRequests(pageable, userId);
+            if(null != page && null != page.getContent()){
+                resultList.setSuccess(true);
+                resultList.setTotalRecords(page.getTotalElements());
+                resultList.setData(page.getContent());
+            }else{
+                resultList.setSuccess(true);
+                resultList.setMessage("No matching records");
+            }
+        }
+        return resultList;
     }
 }

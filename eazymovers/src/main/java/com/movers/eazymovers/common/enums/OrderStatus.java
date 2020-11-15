@@ -1,8 +1,8 @@
 package com.movers.eazymovers.common.enums;
 
 public enum OrderStatus {
-    SUBMIT("Submitted",1),
-    PENDING("Pending",2),
+    SUBMITED("Submitted",1),
+    ACCEPTED("Accepted",2),
     CANCEL("Canceled",3),
     REORDER("Reorder",4),
     COMPLETE("Completed",5),

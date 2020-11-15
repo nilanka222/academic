@@ -55,6 +55,9 @@ public class Order implements Serializable {
     @Column(name="created_time")
     private Date createdTime;
 
+    @Column(name="resubmit")
+    private Integer resubmit;
+
     @OneToMany(targetEntity = OrderHistory.class,cascade = CascadeType.ALL)
     private List<OrderHistory> historyList;
 

@@ -4,15 +4,20 @@ import com.movers.eazymovers.common.dto.UserDTO;
 import com.movers.eazymovers.common.dto.VehicleDTO;
 import com.movers.eazymovers.common.dto.VehicleTypeDTO;
 import com.movers.eazymovers.common.enums.UserStatus;
+import com.movers.eazymovers.common.response.ResultList;
 import com.movers.eazymovers.common.util.EasyMoversBeanUtils;
-import com.movers.eazymovers.dal.entity.User;
 import com.movers.eazymovers.dal.entity.Vehicle;
 import com.movers.eazymovers.dal.entity.VehicleType;
 import com.movers.eazymovers.dal.repository.VehicleRepository;
 import com.movers.eazymovers.dal.repository.VehicleTypeRepository;
 import com.movers.eazymovers.service.VehicleService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,6 +26,8 @@ import java.util.Optional;
 
 @Service
 public class VehicleServiceImpl implements VehicleService {
+    private static final Logger LOGGER = LogManager.getLogger(VehicleServiceImpl.class);
+
     @Autowired
     VehicleRepository vehicleRepository;
 
@@ -54,6 +61,7 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     public void deleteVehicle(Long id) {
         vehicleRepository.deleteById(id);
+        LOGGER.info("vehicle removed id:"+id);
     }
 
     @Override
@@ -123,5 +131,43 @@ public class VehicleServiceImpl implements VehicleService {
         }
 
         return ownerList;
+    }
+
+    @Override
+    public ResultList findVehicle(Integer pageNo, Integer pageSize, Long userId, Integer vehicleTypeId) {
+        ResultList resultList = new ResultList();
+        resultList.setCurrentPage(pageNo);
+        resultList.setPageSize(pageSize);
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        //we can use criteria query builder if there more dynamic params
+        if(null != userId){
+            VehicleDTO dto = findVehicleByOwner(userId);
+            List list = new ArrayList();
+            list.add(dto);
+            resultList.setData(list);
+            resultList.setSuccess(true);
+            resultList.setTotalRecords(1);
+        }else if(null != vehicleTypeId){
+            Page<Vehicle> page = vehicleRepository.findByVehicleTypeId(pageable,vehicleTypeId);
+            if(null != page && null != page.getContent()){
+                resultList.setSuccess(true);
+                resultList.setTotalRecords(page.getTotalElements());
+                resultList.setData(page.getContent());
+            }else{
+                resultList.setSuccess(true);
+                resultList.setMessage("No matching records");
+            }
+        }else{
+            Page<Vehicle> page = vehicleRepository.findAll(pageable);
+            if(null != page && null != page.getContent()){
+                resultList.setSuccess(true);
+                resultList.setTotalRecords(page.getTotalElements());
+                resultList.setData(page.getContent());
+            }else{
+                resultList.setSuccess(true);
+                resultList.setMessage("No matching records");
+            }
+        }
+        return resultList;
     }
 }

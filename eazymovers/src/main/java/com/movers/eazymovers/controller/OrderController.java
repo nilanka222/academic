@@ -16,12 +16,12 @@ public class OrderController {
     @Autowired
     OrderService orderService;
 
-    @PostMapping(value = "/create")
+    @PostMapping("")
     Result createOrder(@RequestBody OrderDTO orderDTO){
         return orderService.createOrder(orderDTO);
     }
 
-    @PostMapping(value = "/update")
+    @PutMapping("")
     Result updateOrder(@RequestBody OrderDTO orderDTO){
         return orderService.updateOrder(orderDTO);
     }

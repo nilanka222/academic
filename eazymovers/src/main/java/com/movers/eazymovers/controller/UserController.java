@@ -6,10 +6,7 @@ import com.movers.eazymovers.common.response.Result;
 import com.movers.eazymovers.service.UserRoleService;
 import com.movers.eazymovers.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/easymovers/user")
@@ -19,12 +16,12 @@ public class UserController {
     @Autowired
     UserRoleService userRoleService;
 
-    @PostMapping(value="/register")
+    @PostMapping(value="")
     public Result<UserDTO> registerUser(@RequestBody UserDTO userDTO){
         return userService.registerUser(userDTO);
     }
 
-    @PostMapping(value="/update")
+    @PutMapping(value="")
     public Result<UserDTO> updateUser(@RequestBody UserDTO userDTO){
         return userService.updateUser(userDTO);
     }
@@ -34,12 +31,12 @@ public class UserController {
         return userService.authenticateUser(userDTO);
     }
 
-    @PostMapping(value="/role/save")
+    @PostMapping(value="/role")
     public Result<UserRoleDTO> saveUserRole(@RequestBody UserRoleDTO userRoleDTO){
         return userRoleService.saveUserRole(userRoleDTO);
     }
 
-    @PostMapping(value="/role/update")
+    @PutMapping(value="/role")
     public Result<UserRoleDTO> updateUserRole(@RequestBody UserRoleDTO userRoleDTO){
         return userRoleService.updateUserRole(userRoleDTO);
     }
