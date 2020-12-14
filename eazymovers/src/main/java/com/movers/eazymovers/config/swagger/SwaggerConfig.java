@@ -1,4 +1,4 @@
-package com.movers.eazymovers.config;
+package com.movers.eazymovers.config.swagger;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

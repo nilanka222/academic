@@ -1,5 +1,6 @@
 package com.movers.eazymovers.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.movers.eazymovers.dal.entity.UserAddress;
 import com.movers.eazymovers.dal.entity.UserRole;
 import com.movers.eazymovers.dal.entity.Vehicle;
@@ -14,8 +15,9 @@ public class UserDTO implements Serializable {
 
     private Long userId;
 
-    private String userName;
+    private String username;
 
+    @JsonIgnore
     private String password;
 
     private UserRoleDTO userRole;
@@ -38,6 +40,7 @@ public class UserDTO implements Serializable {
 
     private Boolean isVehicleOwner;
 
+    @JsonIgnore
     private VehicleDTO vehicle;
 
 }

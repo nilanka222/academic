@@ -13,7 +13,7 @@ import java.util.List;
 public class Order implements Serializable {
     @Id
     @GeneratedValue
-    private long id;
+    private Long id;
 
     @OneToOne(targetEntity = User.class, cascade = CascadeType.ALL)
     @JoinColumn(name="consumer")

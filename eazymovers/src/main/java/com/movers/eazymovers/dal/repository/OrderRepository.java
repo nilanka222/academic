@@ -15,6 +15,6 @@ public interface OrderRepository extends PagingAndSortingRepository<Order,Long> 
     Page<Order> findUserOrders(Pageable pageable, @Param(value="userId")Long userId);
 
     @Query("Select o from Order o where (o.consumer.userId=:userId or o.provider.userId=userId) and " +
-            "(o.status=1 0r o.status=3) and o.resubmit <2")
+            "(o.status=1 or o.status=3) and o.resubmit <2")
     Page<Order> findSubmittedRequests(Pageable pageable, Long userId);
 }

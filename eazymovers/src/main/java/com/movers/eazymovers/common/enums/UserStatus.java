@@ -13,7 +13,7 @@ public enum UserStatus {
         this.value = value;
     }
 
-    public static UserStatus fromVale(int val){
+    public static UserStatus fromVal(int val){
         for(UserStatus status: UserStatus.values()){
             if(status.value == val){
                 return status;

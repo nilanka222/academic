@@ -2,9 +2,11 @@ package com.movers.eazymovers.service.impl;
 
 import com.movers.eazymovers.common.dto.UserDTO;
 import com.movers.eazymovers.common.enums.UserStatus;
+import com.movers.eazymovers.common.response.JwtResponse;
 import com.movers.eazymovers.common.response.Result;
 import com.movers.eazymovers.common.util.EasyMoversBeanUtils;
 import com.movers.eazymovers.common.util.ThreadLocalContextHolder;
+import com.movers.eazymovers.config.jwt.JwtTokenUtil;
 import com.movers.eazymovers.dal.entity.User;
 import com.movers.eazymovers.dal.entity.UserAddress;
 import com.movers.eazymovers.dal.entity.Vehicle;
@@ -15,11 +17,15 @@ import com.movers.eazymovers.service.UserService;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 @Service
@@ -33,13 +39,23 @@ public class UserServiceImpl implements UserService {
     @Autowired
     UserAdressRepository userAdressRepository;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
+    @Autowired
+    JwtUserDetailsService jwtUserDetailsService;
+
     @Override
+    @Transactional
     public Result registerUser(UserDTO userDTO) {
         //TODO validate user properties
 
         //TODO assign a user role, get from Enum, ...
         User user = new User();
-        user.setUserName(userDTO.getUserName());
+        user.setUsername(userDTO.getUsername());
         user.setFirstName(userDTO.getFirstName());
         user.setLastName(userDTO.getLastName());
         user.setEmail(userDTO.getEmail());
@@ -94,24 +110,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result authenticateUser(UserDTO userDTO) {
+    public Result<JwtResponse> authenticateUser(UserDTO userDTO) throws Exception {
         Result result = new Result();
-        if(null == userDTO || StringUtils.isEmpty(userDTO.getUserName()) || StringUtils.isEmpty(userDTO.getPassword())){
+        if(null == userDTO || StringUtils.isEmpty(userDTO.getUsername()) || StringUtils.isEmpty(userDTO.getPassword())){
             //empty login request
             result.setSuccess(false);
             result.setData(null);
             result.setMessage("Wrong username or password!");
             return result;
         }
+        authenticate(userDTO.getUsername(), userDTO.getPassword());
 
-        User user = userRepository.findByUserName(userDTO.getUserName());
-         if(null == user){
+        final UserDetails userDetails = jwtUserDetailsService
+                .loadUserByUsername(userDTO.getUsername());
+
+        final String token = jwtTokenUtil.generateToken(userDetails);
+
+        User user = userRepository.findByUsername(userDTO.getUsername());
+        //add current user to local thread
+        ThreadLocalContextHolder.setCurrentUser(user);
+
+        /*if(null == user){
              //username does not match with existing users
              result.setSuccess(false);
              result.setData(null);
              result.setMessage("Wrong username or password!");
              return result;
          }
+
          String md5Password = getMD5Hash(userDTO.getPassword());
          if(user.getPassword().equals(md5Password)){
              //password matched and authentication success
@@ -119,19 +145,40 @@ public class UserServiceImpl implements UserService {
              result.setData(user);
              result.setMessage("Login Success!");
 
-             //add current user to local thread
-             ThreadLocalContextHolder.setCurrentUser(user);
+
          }else{
              //wrong password
              result.setSuccess(false);
              result.setData(null);
              result.setMessage("Wrong username or password!");
-         }
-
-         return result;
+         }*/
+        JwtResponse jwtResponse = new JwtResponse();
+        jwtResponse.setJwtToken(token);
+        jwtResponse.setFirstName(user.getFirstName());
+        jwtResponse.setLastName(user.getLastName());
+        jwtResponse.setUserName(user.getUsername());
+        result.setSuccess(true);
+        result.setData(jwtResponse);
+        result.setMessage("Login Success!");
+        return result;
     }
 
-    private String getMD5Hash(String passwordString){
+    @Override
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    private void authenticate(String username, String password) throws Exception {
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+        } catch (DisabledException e) {
+            throw new Exception("USER_DISABLED", e);
+        } catch (
+                BadCredentialsException e) {
+            throw new Exception("INVALID_CREDENTIALS", e);
+        }
+    }
+    /*private String getMD5Hash(String passwordString){
         String generatedPassword = null;
         try {
             // Create MessageDigest instance for MD5
@@ -155,5 +202,5 @@ public class UserServiceImpl implements UserService {
             e.printStackTrace();
         }
         return generatedPassword;
-    }
+    }*/
 }

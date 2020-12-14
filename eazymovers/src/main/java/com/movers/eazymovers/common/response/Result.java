@@ -8,5 +8,6 @@ public class Result<T> {
     private T data;
     private String message;
     private boolean success;
+    private int code;
 
 }

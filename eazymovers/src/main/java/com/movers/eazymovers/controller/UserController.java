@@ -2,6 +2,7 @@ package com.movers.eazymovers.controller;
 
 import com.movers.eazymovers.common.dto.UserDTO;
 import com.movers.eazymovers.common.dto.UserRoleDTO;
+import com.movers.eazymovers.common.response.JwtResponse;
 import com.movers.eazymovers.common.response.Result;
 import com.movers.eazymovers.service.UserRoleService;
 import com.movers.eazymovers.service.UserService;
@@ -16,7 +17,7 @@ public class UserController {
     @Autowired
     UserRoleService userRoleService;
 
-    @PostMapping(value="")
+    @PostMapping(value="/register")
     public Result<UserDTO> registerUser(@RequestBody UserDTO userDTO){
         return userService.registerUser(userDTO);
     }
@@ -27,7 +28,7 @@ public class UserController {
     }
 
     @PostMapping(value = "/authenticate")
-    public Result authenticateUser(@RequestBody UserDTO userDTO){
+    public Result<JwtResponse> authenticateUser(@RequestBody UserDTO userDTO) throws Exception {
         return userService.authenticateUser(userDTO);
     }
 
